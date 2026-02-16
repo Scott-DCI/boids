@@ -25,13 +25,13 @@ class Boid {
             brt: 100
         }
 
-        //behaviour
+        //behaviour (read from global boidParams if available)
         this.maxSpeed = this.getSpeed(this.size);
         this.maxForce = 20 / this.size;
-        this.separationDistance = 20; //distance to separate others
-        this.alignmentDistance = 50; //distance to align with others
+        this.separationDistance = (typeof boidParams !== 'undefined' && boidParams) ? boidParams.separationDistance : 20;
+        this.alignmentDistance = (typeof boidParams !== 'undefined' && boidParams) ? boidParams.alignmentDistance : 50;
         this.killBoid = false;
-        this.bufferZone = 350;
+        this.bufferZone = (typeof boidParams !== 'undefined' && boidParams) ? boidParams.bufferZone : 350;
         this.bounds = {
             xMin: -width / 2 + this.bufferZone,
             yMin: -height / 2 + this.bufferZone,
@@ -69,7 +69,20 @@ class Boid {
     }
 
     //updates boid vectors and behaviour
-    update(behaviour, output) {
+    update(behaviour, output, params) {
+        // live-update from params so sliders affect all boids
+        if (params != null) {
+            this.separationDistance = params.separationDistance;
+            this.alignmentDistance = params.alignmentDistance;
+            this.bufferZone = params.bufferZone;
+            this.bounds.xMin = -width / 2 + this.bufferZone;
+            this.bounds.yMin = -height / 2 + this.bufferZone;
+            this.bounds.xMax = width / 2 - this.bufferZone;
+            this.bounds.yMax = height / 2 - this.bufferZone;
+        }
+        const centerSeekStrength = (params != null && params.centerSeekStrength != null) ? params.centerSeekStrength : 0.1;
+        const constrainStrength = 0.3;
+
         this.color.hue += 0.2;
         this.color.hue = this.color.hue % 360;
 
@@ -95,8 +108,8 @@ class Boid {
         this.age(0.1);
 
         //apply boundary behaviour
-        this.constrain(this.bounds, 0.3);
-        this.seek(createVector(0, 0), 0.1); //seek center of screen
+        this.constrain(this.bounds, constrainStrength);
+        this.seek(createVector(0, 0), centerSeekStrength);
     }
 
     //applies a force to the boid
@@ -154,7 +167,7 @@ class Boid {
         if (count > 0) {
             direction.div(count);
             direction.setMag(this.maxSpeed);
-            let steerVector = p5.Vector.sub(direction, this.velocity);
+            let steerVector = p5.Vector.sub(direction, this.vel);
             steerVector.limit(this.maxForce * strength);
             this.applyForce(steerVector);
         }

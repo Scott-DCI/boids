@@ -6,25 +6,40 @@ function Boids() {
 
   this.setup = () => {
     boids = [];
-    maxBoids = 200;
+    maxBoids = (typeof boidParams !== 'undefined' && boidParams) ? boidParams.maxBoids : 200;
     addBoids(70, Boid);
     angleMode(RADIANS);
   };
 
   this.draw = (output) => {
+    const params = (typeof boidParams !== 'undefined' && boidParams) ? boidParams : null;
+    if (params) maxBoids = params.maxBoids;
+
+    if (params && params.resetRequested) {
+      params.resetRequested = false;
+      boids = [];
+      addBoids(70, Boid);
+    }
+
     push();
     translate(width / 2, height / 2);
     background(0);
 
-    // magic numbers to balance flocking forces: {0.2, 1, 0.8}
     let behaviour = {
-      separationStrength: 0.2,
-      alignmentStrength: 1,
-      cohesionStrength: 0.8,
+      separationStrength: params ? params.separationStrength : 0.2,
+      alignmentStrength: params ? params.alignmentStrength : 1,
+      cohesionStrength: params ? params.cohesionStrength : 0.8,
     };
 
+    const passParams = params ? {
+      separationDistance: params.separationDistance,
+      alignmentDistance: params.alignmentDistance,
+      bufferZone: params.bufferZone,
+      centerSeekStrength: params.centerSeekStrength,
+    } : null;
+
     for (let i = 0; i < boids.length; i++) {
-      boids[i].update(behaviour, output);
+      boids[i].update(behaviour, output, passParams);
       boids[i].draw();
 
       if (boids[i].killBoid) {
